@@ -1,0 +1,3589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Jetour Quality Assurance Dashboard</title>
+
+  <!-- Tailwind CSS, Chart.js, XLSX & Three.js -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      background:
+        radial-gradient(circle at 15% 10%, rgba(168, 85, 247, 0.10), transparent 28%),
+        radial-gradient(circle at 85% 20%, rgba(236, 72, 153, 0.08), transparent 28%),
+        radial-gradient(circle at 50% 100%, rgba(6, 182, 212, 0.06), transparent 35%),
+        #08040f;
+      color: #ffffff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow-x: hidden;
+      position: relative;
+      min-height: 100vh;
+    }
+
+    /* =========================================================
+       3D BACKGROUND
+       ========================================================= */
+
+    #three-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.75;
+    }
+
+    /* =========================================================
+       DASHBOARD CONTAINER
+       ========================================================= */
+
+    #dashboardContainer {
+      position: relative;
+      z-index: 10;
+    }
+
+    /* =========================================================
+       GLASS CARDS
+       ========================================================= */
+
+    .card-bg {
+      background:
+        linear-gradient(
+          145deg,
+          rgba(36, 18, 58, 0.88),
+          rgba(18, 9, 33, 0.82)
+        );
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(139, 92, 246, 0.20);
+      border-radius: 16px;
+      box-shadow:
+        0 12px 35px rgba(0, 0, 0, 0.38),
+        inset 0 1px 0 rgba(255, 255, 255, 0.035);
+      transition:
+        transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+        border-color 0.3s ease,
+        box-shadow 0.3s ease;
+    }
+
+    .card-bg:hover {
+      transform: translateY(-3px);
+      border-color: rgba(236, 72, 153, 0.38);
+      box-shadow:
+        0 18px 45px rgba(0, 0, 0, 0.45),
+        0 0 25px rgba(236, 72, 153, 0.08);
+    }
+
+    .kpi-card {
+      background:
+        linear-gradient(
+          145deg,
+          rgba(40, 24, 58, 0.90),
+          rgba(22, 12, 38, 0.86)
+        );
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(139, 92, 246, 0.20);
+      border-radius: 14px;
+      box-shadow:
+        0 10px 28px rgba(0, 0, 0, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
+      transition:
+        transform 0.25s ease,
+        border-color 0.25s ease,
+        box-shadow 0.25s ease;
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(6, 182, 212, 0.45);
+      box-shadow:
+        0 14px 35px rgba(0, 0, 0, 0.35),
+        0 0 22px rgba(6, 182, 212, 0.10);
+    }
+
+    /* =========================================================
+       HEADER
+       ========================================================= */
+
+    .dashboard-title {
+      text-shadow:
+        0 0 20px rgba(236, 72, 153, 0.15);
+    }
+
+    .header-line {
+      height: 1px;
+      width: 100%;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(236, 72, 153, 0.5),
+        rgba(139, 92, 246, 0.35),
+        transparent
+      );
+    }
+
+    /* =========================================================
+       LOGO
+       ========================================================= */
+
+    .logo-blend {
+      mix-blend-mode: lighten;
+      filter:
+        contrast(120%)
+        brightness(110%)
+        drop-shadow(0 0 12px rgba(255, 255, 255, 0.08));
+    }
+
+    /* =========================================================
+       BUTTONS
+       ========================================================= */
+
+    .control-button {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .control-button::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        120deg,
+        transparent 20%,
+        rgba(255,255,255,0.12),
+        transparent 80%
+      );
+      transform: translateX(-120%);
+      transition: transform 0.5s ease;
+    }
+
+    .control-button:hover::after {
+      transform: translateX(120%);
+    }
+
+    /* =========================================================
+       SELECT FILTERS
+       ========================================================= */
+
+    .filter-box {
+      background:
+        linear-gradient(
+          145deg,
+          rgba(42, 24, 61, 0.95),
+          rgba(25, 13, 42, 0.95)
+        );
+      border: 1px solid rgba(139, 92, 246, 0.24);
+      border-radius: 10px;
+      transition: all 0.25s ease;
+    }
+
+    .filter-box:hover {
+      border-color: rgba(236, 72, 153, 0.45);
+      box-shadow: 0 0 18px rgba(236, 72, 153, 0.08);
+    }
+
+    select {
+      color-scheme: dark;
+    }
+
+    select option {
+      background: #1e0f33;
+      color: white;
+    }
+
+    input[type="date"] {
+      color-scheme: dark;
+    }
+
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(1);
+      opacity: 0.8;
+      cursor: pointer;
+    }
+
+    /* =========================================================
+       INSIGHTS
+       ========================================================= */
+
+    .insight-card {
+      background: rgba(18, 9, 33, 0.88);
+      border: 1px solid rgba(85, 45, 125, 0.32);
+      border-radius: 12px;
+      transition: all 0.25s ease;
+    }
+
+    .insight-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(139, 92, 246, 0.40);
+      background: rgba(25, 13, 43, 0.92);
+    }
+
+    /* =========================================================
+       SCROLLBAR
+       ========================================================= */
+
+    ::-webkit-scrollbar {
+      width: 7px;
+      height: 7px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0b0517;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(
+        180deg,
+        #6d28d9,
+        #db2777
+      );
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #ec4899;
+    }
+
+    /* =========================================================
+       TABLE
+       ========================================================= */
+
+    .matrix-table-row {
+      transition: background 0.2s ease;
+    }
+
+    .matrix-table-row:hover {
+      background: rgba(76, 29, 149, 0.20);
+    }
+
+    /* =========================================================
+       SECTION TITLES
+       ========================================================= */
+
+    .section-title {
+      position: relative;
+      display: inline-block;
+    }
+
+    .section-title::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: -7px;
+      width: 42px;
+      height: 2px;
+      border-radius: 2px;
+      background: linear-gradient(
+        90deg,
+        #ec4899,
+        #8b5cf6
+      );
+    }
+
+    /* =========================================================
+       RESPONSIVE
+       ========================================================= */
+
+    @media (max-width: 768px) {
+      body {
+        padding: 12px !important;
+      }
+
+      .dashboard-title {
+        font-size: 1.25rem;
+      }
+
+      .card-bg {
+        border-radius: 12px;
+      }
+
+      .kpi-card {
+        border-radius: 12px;
+      }
+    }
+  </style>
+</head>
+
+<body class="p-6 relative">
+
+  <!-- =========================================================
+       3D DYNAMIC BACKGROUND CANVAS
+       ========================================================= -->
+
+  <canvas id="three-bg"></canvas>
+
+  <!-- =========================================================
+       MAIN DASHBOARD
+       ========================================================= -->
+
+  <div id="dashboardContainer" class="relative z-10 max-w-7xl mx-auto">
+
+    <!-- =======================================================
+         HEADER
+         ======================================================= -->
+
+    <div class="flex flex-col lg:flex-row justify-between items-center mb-5 gap-5">
+
+      <!-- BRANDING -->
+
+      <div class="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+
+        <!-- JETOUR LOGO -->
+
+        <div class="relative">
+          <div class="absolute inset-0 bg-pink-500/10 blur-2xl rounded-full"></div>
+
+          <img
+            src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjRs_wvcTjrzm2DUFadWJLMivsZrb7WvOnGn3d-xNq0uz6-BydOYu9TS_UG9L1V9osKTGRRqZ0Vc4VnpuSPR74FI6ty5zFQc13QWGDZSDOVCb5bSLpnmmI6i4XatgGN8CzohP8mZrROiwz1Mlj0MGTqzBLgI9ymu3dcSAoDEzScvNPI0ncByzV9QXow_GjX/s1600/jetour_logo.jpg"
+            alt="Jetour Logo"
+            class="relative h-14 w-auto object-contain logo-blend transition-transform duration-300 hover:scale-105"
+          />
+        </div>
+
+        <div class="flex flex-col items-center sm:items-start">
+
+          <h1 class="dashboard-title text-2xl font-extrabold text-white tracking-wide">
+            Jetour Quality Assurance Dashboard
+          </h1>
+
+          <div class="header-line mt-2 mb-2"></div>
+
+          <!-- DATASET STATUS -->
+
+          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1e0f33]/90 border border-pink-500/25 text-xs shadow-inner">
+
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-pink-500"></span>
+            </span>
+
+            <span class="text-purple-300 font-medium">
+              Dataset:
+            </span>
+
+            <span
+              id="fileNameBadge"
+              class="text-pink-300 font-semibold tracking-wide"
+            >
+              No file loaded yet
+            </span>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- =====================================================
+           CONTROLS & FILTERS
+           ===================================================== -->
+
+      <div
+        id="controlsArea"
+        class="flex flex-wrap gap-2.5 items-center justify-center"
+      >
+
+        <!-- 3D MODE BUTTON -->
+
+        <button
+          id="toggle3dModeBtn"
+          onclick="toggleAnalysis3DMode()"
+          class="control-button bg-purple-900/80 hover:bg-purple-800 border border-purple-400/40 text-purple-200 text-xs px-3.5 py-2.5 rounded-lg font-medium transition duration-200 hover:scale-105 flex items-center gap-2 shadow-md"
+        >
+          <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+          <span>3D Mode: Ambient</span>
+        </button>
+
+        <!-- FILE UPLOAD -->
+
+        <input
+          type="file"
+          id="excelFile"
+          accept=".xlsx, .xls"
+          class="hidden"
+          onchange="handleFileUpload(event)"
+        />
+
+        <button
+          onclick="document.getElementById('excelFile').click()"
+          class="control-button bg-pink-600 hover:bg-pink-500 text-white text-xs px-4 py-2.5 rounded-lg font-semibold transition duration-200 hover:scale-105 flex items-center gap-2 shadow-lg shadow-pink-900/30"
+        >
+          📁 Upload File
+        </button>
+
+        <!-- DATE RANGE FILTER -->
+
+        <div class="filter-box px-3 py-2 flex items-center gap-2">
+          <label class="text-xs text-purple-300 font-medium">
+            FROM
+          </label>
+
+          <input
+            type="date"
+            id="fromDate"
+            value="2026-07-29"
+            class="bg-transparent text-white text-sm focus:outline-none cursor-pointer"
+          />
+        </div>
+
+        <div class="filter-box px-3 py-2 flex items-center gap-2">
+          <label class="text-xs text-purple-300 font-medium">
+            TO
+          </label>
+
+          <input
+            type="date"
+            id="toDate"
+            value="2026-07-29"
+            class="bg-transparent text-white text-sm focus:outline-none cursor-pointer"
+          />
+        </div>
+
+        <!-- DEFECT FILTER -->
+
+        <div class="filter-box px-3 py-2 flex items-center gap-2">
+          <label class="text-xs text-purple-300 font-medium">
+            DEFECT
+          </label>
+
+          <select
+            id="defectSelect"
+            class="bg-transparent text-white text-sm focus:outline-none cursor-pointer"
+          >
+            <option value="All Defects">All Defects</option>
+          </select>
+        </div>
+
+        <!-- DEFECT CATEGORY FILTER -->
+
+        <div class="filter-box px-3 py-2 flex items-center gap-2">
+          <label class="text-xs text-purple-300 font-medium">
+            CATEGORY
+          </label>
+
+          <select
+            id="categorySelect"
+            class="bg-transparent text-white text-sm focus:outline-none cursor-pointer"
+          >
+            <option value="All Categories">All Categories</option>
+          </select>
+        </div>
+
+        <!-- JOB FILTER -->
+
+        <div class="filter-box px-3 py-2 flex items-center gap-2">
+          <label class="text-xs text-purple-300 font-medium">
+            JOB
+          </label>
+
+          <select
+            id="jobSelect"
+            class="bg-transparent text-white text-sm focus:outline-none cursor-pointer"
+          >
+            <option value="All Jobs">All Jobs</option>
+          </select>
+        </div>
+
+        <!-- CHASSIS FILTER -->
+
+        <div class="filter-box px-3 py-2 flex items-center gap-2">
+          <label class="text-xs text-purple-300 font-medium">
+            CHASSIS
+          </label>
+
+          <input
+            type="text"
+            id="chassisSearch"
+            placeholder="Search chassis..."
+            class="bg-transparent text-white text-sm focus:outline-none w-44 placeholder-gray-500"
+          />
+        </div>
+
+        <!-- APPLY FILTERS BUTTON -->
+
+        <button
+          type="button"
+          onclick="applyFilters()"
+          class="control-button bg-[#17191d] hover:bg-[#22252a] border border-gray-700 text-white text-sm px-4 py-2.5 rounded-lg font-semibold transition duration-200"
+        >
+          Apply Filters
+        </button>
+      </div>
+
+    </div>
+
+    <!-- =======================================================
+         ACTIVE CHART FILTER
+         ======================================================= -->
+
+    <div
+      id="chartFilterBadge"
+      class="hidden mb-5 p-3.5 bg-pink-950/70 border border-pink-500/60 rounded-xl flex justify-between items-center text-xs backdrop-blur-md shadow-lg shadow-pink-950/20"
+    >
+
+      <span>
+        🔍 Cross-Filter Active:
+        <strong
+          id="activeFilterText"
+          class="text-pink-300 font-semibold"
+        >
+          None
+        </strong>
+      </span>
+
+      <button
+        onclick="clearChartFilter()"
+        class="bg-pink-600 hover:bg-pink-500 text-white px-3 py-1.5 rounded-md font-bold transition"
+      >
+        ✕ Clear Filter
+      </button>
+
+    </div>
+
+    <!-- =======================================================
+         KPI CARDS
+         ======================================================= -->
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+
+      <!-- DEFECTS -->
+
+      <div class="kpi-card p-5 cursor-pointer relative overflow-hidden">
+
+        <div class="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-pink-500/10 blur-2xl"></div>
+
+        <div
+          id="kpiDefects"
+          class="text-3xl font-extrabold text-pink-500 mb-1 relative"
+        >
+          0
+        </div>
+
+        <div class="text-xs font-semibold text-purple-300 uppercase tracking-wider">
+          Total Defects
+        </div>
+
+      </div>
+
+      <!-- VEHICLES -->
+
+      <div class="kpi-card p-5 cursor-pointer relative overflow-hidden">
+
+        <div class="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-cyan-500/10 blur-2xl"></div>
+
+        <div
+          id="kpiVehicles"
+          class="text-3xl font-extrabold text-cyan-400 mb-1 relative"
+        >
+          0
+        </div>
+
+        <div class="text-xs font-semibold text-purple-300 uppercase tracking-wider">
+          Total Vehicles
+        </div>
+
+      </div>
+
+      <!-- DPU -->
+
+      <div class="kpi-card p-5 cursor-pointer relative overflow-hidden">
+
+        <div class="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-purple-500/10 blur-2xl"></div>
+
+        <div
+          id="kpiDPU"
+          class="text-3xl font-extrabold text-purple-300 mb-1 relative"
+        >
+          0.00
+        </div>
+
+        <div class="text-xs font-semibold text-purple-300 uppercase tracking-wider">
+          Defects Per Vehicle (DPU)
+        </div>
+
+      </div>
+
+      <!-- TOP CATEGORY -->
+
+      <div class="kpi-card p-5 cursor-pointer relative overflow-hidden">
+
+        <div class="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-yellow-400/10 blur-2xl"></div>
+
+        <div
+          id="kpiTopCategory"
+          class="text-3xl font-extrabold text-yellow-400 mb-1 relative"
+        >
+          -
+        </div>
+
+        <div class="text-xs font-semibold text-purple-300 uppercase tracking-wider">
+          Top Impacted Category
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- =======================================================
+         INSIGHTS PANEL
+         ======================================================= -->
+
+    <div
+      class="card-bg p-5 mb-6 border-l-4 border-l-pink-500 bg-gradient-to-r from-[#1e0f33]/80 via-[#1a0c2d]/80 to-[#120921]/80 rounded-xl shadow-lg"
+    >
+
+      <div class="flex flex-col md:flex-row md:items-center justify-between pb-3 mb-4 border-b border-[#35254a]/60 gap-3">
+
+        <h2 class="section-title text-lg font-bold text-pink-300 tracking-wide">
+          Insights Summary
+        </h2>
+
+        <div class="flex flex-wrap items-center gap-4 text-xs font-medium text-purple-200 bg-[#120921]/80 px-3 py-1.5 rounded-lg border border-[#35254a]">
+
+          <div class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"></span>
+            <span>
+              <strong class="text-red-400">Red:</strong>
+              Critical (Needs Immediate Action)
+            </span>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]"></span>
+            <span>
+              <strong class="text-amber-300">Gold:</strong>
+              Important (Secondary Action)
+            </span>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+            <span>
+              <strong class="text-cyan-300">Cyan:</strong>
+              Normal Indicator
+            </span>
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+
+        <div class="insight-card p-4 border-l-2 border-l-pink-500">
+
+          <span class="font-bold text-pink-400 text-sm block mb-1.5 tracking-wide">
+            Defect Concentration
+          </span>
+
+          <p
+            id="insightDefects"
+            class="text-purple-100 leading-relaxed"
+          >
+            Upload dataset to initiate insight calculations.
+          </p>
+
+        </div>
+
+        <div class="insight-card p-4 border-l-2 border-l-cyan-400">
+
+          <span class="font-bold text-cyan-400 text-sm block mb-1.5 tracking-wide">
+            Category Distribution
+          </span>
+
+          <p
+            id="insightCategory"
+            class="text-purple-100 leading-relaxed"
+          >
+            Upload dataset to initiate insight calculations.
+          </p>
+
+        </div>
+
+        <div class="insight-card p-4 border-l-2 border-l-amber-400">
+
+          <span class="font-bold text-amber-400 text-sm block mb-1.5 tracking-wide">
+            Peak Trend Analysis
+          </span>
+
+          <p
+            id="insightTrend"
+            class="text-purple-100 leading-relaxed"
+          >
+            Upload dataset to initiate insight calculations.
+          </p>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- =======================================================
+         CHARTS GRID
+         ======================================================= -->
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+      <!-- DEFECT DESCRIPTION -->
+
+      <div class="card-bg p-5 cursor-pointer">
+
+        <h2 class="text-base font-semibold mb-4 text-purple-100">
+          Total Defects by Defect Description
+          <span class="text-xs font-normal text-purple-400">
+            (Click to filter)
+          </span>
+        </h2>
+
+        <div class="h-96">
+          <canvas id="defectsBarChart"></canvas>
+        </div>
+
+      </div>
+
+      <!-- MONTHLY TREND -->
+
+      <div class="card-bg p-5 cursor-pointer">
+
+        <h2 class="text-base font-semibold mb-4 text-purple-100">
+          Defects Monthly Trend (12 Months)
+          <span class="text-xs font-normal text-purple-400">
+            (Click to filter)
+          </span>
+        </h2>
+
+        <div class="h-96">
+          <canvas id="dailyTrendChart"></canvas>
+        </div>
+
+      </div>
+
+      <!-- CATEGORY DONUT -->
+
+      <div class="card-bg p-5 cursor-pointer">
+
+        <h2 class="text-base font-semibold mb-4 text-purple-100">
+          Total Defects by Category
+          <span class="text-xs font-normal text-purple-400">
+            (Click slice to filter)
+          </span>
+        </h2>
+
+        <div class="h-96 flex justify-center items-center">
+          <canvas id="categoryDonutChart"></canvas>
+        </div>
+
+      </div>
+
+      <!-- PARETO -->
+
+      <div class="card-bg p-5 cursor-pointer">
+
+        <h2 class="text-base font-semibold mb-4 text-purple-100">
+          Top Defects Pareto Analysis
+          <span class="text-xs font-normal text-purple-400">
+            (Click bar to filter)
+          </span>
+        </h2>
+
+        <div class="h-96">
+          <canvas id="paretoChart"></canvas>
+        </div>
+
+      </div>
+
+      <!-- INSPECTOR -->
+
+      <div class="card-bg p-5 cursor-pointer">
+
+        <h2 class="text-base font-semibold mb-4 text-purple-100">
+          Defects & Vehicles Inspected by Quality Inspector
+          <span class="text-xs font-normal text-purple-400">
+            (Click bar to filter)
+          </span>
+        </h2>
+
+        <div class="h-96">
+          <canvas id="inspectorChart"></canvas>
+        </div>
+
+      </div>
+
+      <!-- LOCATION -->
+
+      <div class="card-bg p-5 cursor-pointer">
+
+        <h2 class="text-base font-semibold mb-4 text-purple-100">
+          Top 10 Defect Locations
+          <span class="text-xs font-normal text-purple-400">
+            (Click bar to filter)
+          </span>
+        </h2>
+
+        <div class="h-96">
+          <canvas id="locationChart"></canvas>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- =======================================================
+         MATRIX TABLE
+         ======================================================= -->
+
+    <div class="card-bg p-5 mb-6">
+
+      <h2 class="section-title text-base font-semibold mb-6 text-purple-100">
+        Defects Matrix by LOT & Category
+      </h2>
+
+      <div class="overflow-x-auto max-h-72">
+
+        <table class="w-full text-left text-sm border-collapse">
+
+          <thead class="sticky top-0 bg-[#241734] text-purple-200 uppercase text-xs">
+
+            <tr>
+
+              <th class="p-3 border-b border-[#35254a]">
+                LOT
+              </th>
+
+              <th class="p-3 border-b border-[#35254a] text-center">
+                Assy
+              </th>
+
+              <th class="p-3 border-b border-[#35254a] text-center">
+                Body
+              </th>
+
+              <th class="p-3 border-b border-[#35254a] text-center">
+                Ckd
+              </th>
+
+              <th class="p-3 border-b border-[#35254a] text-center">
+                Local
+              </th>
+
+              <th class="p-3 border-b border-[#35254a] text-center">
+                Paint
+              </th>
+
+              <th class="p-3 border-b border-[#35254a] text-center font-bold text-pink-400">
+                Total
+              </th>
+
+            </tr>
+
+          </thead>
+
+          <tbody
+            id="matrixBody"
+            class="divide-y divide-[#2a1a40]"
+          ></tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- =========================================================
+       JAVASCRIPT
+       ========================================================= -->
+
+  <script>
+
+    /* =========================================================
+       THREE.JS DYNAMIC 3D BACKGROUND ENGINE
+       ========================================================= */
+
+    let scene,
+        camera,
+        renderer,
+        particleSystem,
+        floatingGeometries = [];
+
+    let mouseX = 0,
+        mouseY = 0;
+
+    let isAnalysis3DMode = false;
+
+
+    function init3DBackground() {
+
+      const canvas = document.getElementById('three-bg');
+
+      scene = new THREE.Scene();
+
+      scene.fog = new THREE.FogExp2(
+        0x0b0517,
+        0.0018
+      );
+
+      camera = new THREE.PerspectiveCamera(
+        60,
+        window.innerWidth / window.innerHeight,
+        1,
+        1000
+      );
+
+      camera.position.z = 400;
+
+      renderer = new THREE.WebGLRenderer({
+        canvas: canvas,
+        alpha: true,
+        antialias: true
+      });
+
+      renderer.setPixelRatio(
+        Math.min(window.devicePixelRatio, 2)
+      );
+
+      renderer.setSize(
+        window.innerWidth,
+        window.innerHeight
+      );
+
+
+      const ambientLight =
+        new THREE.AmbientLight(
+          0xffffff,
+          0.7
+        );
+
+      scene.add(ambientLight);
+
+
+      const pointLight1 =
+        new THREE.PointLight(
+          0xff007f,
+          2,
+          600
+        );
+
+      pointLight1.position.set(
+        200,
+        200,
+        100
+      );
+
+      scene.add(pointLight1);
+
+
+      const pointLight2 =
+        new THREE.PointLight(
+          0x00f0ff,
+          2,
+          600
+        );
+
+      pointLight2.position.set(
+        -200,
+        -200,
+        100
+      );
+
+      scene.add(pointLight2);
+
+
+      const materials = [
+
+        new THREE.MeshStandardMaterial({
+          color: 0xff007f,
+          wireframe: true,
+          transparent: true,
+          opacity: 0.35
+        }),
+
+        new THREE.MeshStandardMaterial({
+          color: 0x00f0ff,
+          wireframe: true,
+          transparent: true,
+          opacity: 0.35
+        }),
+
+        new THREE.MeshStandardMaterial({
+          color: 0xa855f7,
+          wireframe: true,
+          transparent: true,
+          opacity: 0.35
+        })
+
+      ];
+
+
+      const geometries = [
+
+        new THREE.IcosahedronGeometry(
+          25,
+          1
+        ),
+
+        new THREE.TorusGeometry(
+          20,
+          5,
+          12,
+          24
+        ),
+
+        new THREE.OctahedronGeometry(
+          22,
+          0
+        )
+
+      ];
+
+
+      for (let i = 0; i < 28; i++) {
+
+        const geom =
+          geometries[i % geometries.length];
+
+        const mat =
+          materials[i % materials.length];
+
+        const mesh =
+          new THREE.Mesh(
+            geom,
+            mat
+          );
+
+
+        mesh.position.x =
+          (Math.random() - 0.5) * 800;
+
+        mesh.position.y =
+          (Math.random() - 0.5) * 600;
+
+        mesh.position.z =
+          (Math.random() - 0.5) * 400;
+
+
+        mesh.rotation.x =
+          Math.random() * Math.PI;
+
+        mesh.rotation.y =
+          Math.random() * Math.PI;
+
+
+        mesh.userData = {
+
+          rotSpeedX:
+            (Math.random() - 0.5) * 0.008,
+
+          rotSpeedY:
+            (Math.random() - 0.5) * 0.008,
+
+          floatSpeed:
+            (Math.random() - 0.5) * 0.3,
+
+          baseY:
+            mesh.position.y
+
+        };
+
+
+        floatingGeometries.push(mesh);
+
+        scene.add(mesh);
+
+      }
+
+
+      const particleCount = 450;
+
+      const particleGeo =
+        new THREE.BufferGeometry();
+
+      const positions =
+        new Float32Array(
+          particleCount * 3
+        );
+
+
+      for (
+        let i = 0;
+        i < particleCount * 3;
+        i++
+      ) {
+
+        positions[i] =
+          (Math.random() - 0.5) * 1000;
+
+      }
+
+
+      particleGeo.setAttribute(
+        'position',
+        new THREE.BufferAttribute(
+          positions,
+          3
+        )
+      );
+
+
+      const particleMat =
+        new THREE.PointsMaterial({
+
+          color: 0xe2e8f0,
+
+          size: 2,
+
+          transparent: true,
+
+          opacity: 0.5
+
+        });
+
+
+      particleSystem =
+        new THREE.Points(
+          particleGeo,
+          particleMat
+        );
+
+
+      scene.add(
+        particleSystem
+      );
+
+
+      window.addEventListener(
+        'resize',
+        onWindowResize
+      );
+
+      document.addEventListener(
+        'mousemove',
+        onMouseMove
+      );
+
+
+      animate3D();
+
+    }
+
+
+    function onMouseMove(event) {
+
+      mouseX =
+        (event.clientX - window.innerWidth / 2) * 0.05;
+
+      mouseY =
+        (event.clientY - window.innerHeight / 2) * 0.05;
+
+    }
+
+
+    function onWindowResize() {
+
+      camera.aspect =
+        window.innerWidth /
+        window.innerHeight;
+
+      camera.updateProjectionMatrix();
+
+      renderer.setSize(
+        window.innerWidth,
+        window.innerHeight
+      );
+
+    }
+
+
+    function animate3D() {
+
+      requestAnimationFrame(
+        animate3D
+      );
+
+
+      camera.position.x +=
+        (mouseX - camera.position.x) * 0.03;
+
+      camera.position.y +=
+        (-mouseY - camera.position.y) * 0.03;
+
+
+      camera.lookAt(
+        scene.position
+      );
+
+
+      const speedMultiplier =
+        isAnalysis3DMode ? 2.8 : 1.0;
+
+
+      floatingGeometries.forEach(
+        mesh => {
+
+          mesh.rotation.x +=
+            mesh.userData.rotSpeedX *
+            speedMultiplier;
+
+          mesh.rotation.y +=
+            mesh.userData.rotSpeedY *
+            speedMultiplier;
+
+          mesh.position.y =
+            mesh.userData.baseY +
+            Math.sin(
+              Date.now() *
+              0.001 *
+              speedMultiplier
+            ) * 12;
+
+        }
+      );
+
+
+      if (particleSystem) {
+
+        particleSystem.rotation.y +=
+          0.0006 *
+          speedMultiplier;
+
+      }
+
+
+      renderer.render(
+        scene,
+        camera
+      );
+
+    }
+
+
+    function toggleAnalysis3DMode() {
+
+      isAnalysis3DMode =
+        !isAnalysis3DMode;
+
+
+      const btn =
+        document.getElementById(
+          'toggle3dModeBtn'
+        );
+
+
+      if (isAnalysis3DMode) {
+
+        btn.classList.remove(
+          'bg-purple-900/80',
+          'text-purple-200'
+        );
+
+        btn.classList.add(
+          'bg-pink-600',
+          'text-white',
+          'shadow-pink-500/50'
+        );
+
+
+        btn.innerHTML = `
+          <span class="w-2 h-2 rounded-full bg-pink-300 animate-ping"></span>
+          <span>3D Mode: Analysis Active</span>
+        `;
+
+
+        floatingGeometries.forEach(
+          m => {
+            m.material.opacity = 0.65;
+          }
+        );
+
+      } else {
+
+        btn.classList.remove(
+          'bg-pink-600',
+          'text-white',
+          'shadow-pink-500/50'
+        );
+
+        btn.classList.add(
+          'bg-purple-900/80',
+          'text-purple-200'
+        );
+
+
+        btn.innerHTML = `
+          <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+          <span>3D Mode: Ambient</span>
+        `;
+
+
+        floatingGeometries.forEach(
+          m => {
+            m.material.opacity = 0.35;
+          }
+        );
+
+      }
+
+    }
+
+
+    window.addEventListener(
+      'load',
+      init3DBackground
+    );
+
+
+    /* =========================================================
+       DASHBOARD CHART & DATA LOGIC
+       ========================================================= */
+
+    Chart.register(
+      ChartDataLabels
+    );
+
+
+    Chart.defaults.color =
+      '#e2e8f0';
+
+    Chart.defaults.borderColor =
+      '#35254a';
+
+
+    let rawData = [];
+
+    let activeChartFilter = {
+      key: null,
+      value: null
+    };
+
+
+    let barChart,
+        lineChart,
+        donutChart,
+        paretoChart,
+        inspectorChart,
+        locationChart;
+
+
+    const all12Months = [
+
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December"
+
+    ];
+
+
+    /* =========================================================
+       GRADIENT CREATOR
+       ========================================================= */
+
+    function createScriptableGradient(
+      direction,
+      defaultC1,
+      defaultC2
+    ) {
+
+      return function(context) {
+
+        const chart =
+          context.chart;
+
+        const {
+          ctx,
+          chartArea
+        } = chart;
+
+
+        if (!chartArea) {
+          return defaultC1;
+        }
+
+
+        const rawValue =
+          context.raw;
+
+
+        const dataset =
+          context.dataset.data;
+
+
+        const total =
+          dataset.reduce(
+            (a, b) =>
+              a +
+              (
+                typeof b === 'number'
+                  ? b
+                  : parseFloat(b) || 0
+              ),
+            0
+          );
+
+
+        const pct =
+          total > 0
+            ? (rawValue / total) * 100
+            : 0;
+
+
+        let c1 =
+          defaultC1;
+
+        let c2 =
+          defaultC2;
+
+
+        if (pct >= 50) {
+
+          c1 = '#ff0055';
+          c2 = '#88001b';
+
+        } else if (pct >= 20) {
+
+          c1 = '#ffb700';
+          c2 = '#b37e00';
+
+        }
+
+
+        let gradient;
+
+
+        if (direction === 'horizontal') {
+
+          gradient =
+            ctx.createLinearGradient(
+              chartArea.left,
+              0,
+              chartArea.right,
+              0
+            );
+
+        } else if (direction === 'vertical') {
+
+          gradient =
+            ctx.createLinearGradient(
+              0,
+              chartArea.bottom,
+              0,
+              chartArea.top
+            );
+
+        } else if (direction === 'area') {
+
+          gradient =
+            ctx.createLinearGradient(
+              0,
+              chartArea.top,
+              0,
+              chartArea.bottom
+            );
+
+        }
+
+
+        gradient.addColorStop(
+          0,
+          c1
+        );
+
+        gradient.addColorStop(
+          1,
+          c2
+        );
+
+
+        return gradient;
+
+      };
+
+    }
+
+
+    /* =========================================================
+       FILE UPLOAD
+       ========================================================= */
+
+    function handleFileUpload(e) {
+
+      const file =
+        e.target.files[0];
+
+
+      if (!file) return;
+
+
+      document.getElementById(
+        'fileNameBadge'
+      ).innerText =
+        file.name;
+
+
+      const reader =
+        new FileReader();
+
+
+      reader.onload =
+        function(evt) {
+
+          const data =
+            new Uint8Array(
+              evt.target.result
+            );
+
+
+          const workbook =
+            XLSX.read(
+              data,
+              {
+                type: 'array',
+                cellDates: true
+              }
+            );
+
+
+          let allRows = [];
+
+
+          workbook.SheetNames.forEach(
+            sName => {
+
+              const json =
+                XLSX.utils.sheet_to_json(
+                  workbook.Sheets[sName]
+                );
+
+
+              allRows =
+                allRows.concat(json);
+
+            }
+          );
+
+
+          processData(
+            allRows
+          );
+
+        };
+
+
+      reader.readAsArrayBuffer(
+        file
+      );
+
+    }
+
+
+    /* =========================================================
+       DATE PARSER
+       ========================================================= */
+
+    function parseDateInfo(row) {
+
+      const dateVal =
+        row['Repair Date'] ||
+        row['Date'] ||
+        row['DATE'] ||
+        row['RepairDate'];
+
+      let dt = null;
+
+      if (
+        dateVal instanceof Date &&
+        !isNaN(
+          dateVal.getTime()
+        )
+      ) {
+
+        dt = dateVal;
+
+      } else if (dateVal) {
+
+        dt = new Date(
+          dateVal
+        );
+
+      }
+
+      if (
+        dt &&
+        !isNaN(
+          dt.getTime()
+        )
+      ) {
+
+        return {
+
+          date:
+            new Date(
+              dt.getFullYear(),
+              dt.getMonth(),
+              dt.getDate()
+            ),
+
+          month:
+            all12Months[
+              dt.getMonth()
+            ],
+
+          day:
+            dt.getDate()
+
+        };
+
+      }
+
+      return {
+
+        date: null,
+
+        month: 'Unknown',
+
+        day: 1
+
+      };
+    }
+
+
+    /* =========================================================
+       PROCESS DATA
+       ========================================================= */
+
+    function processData(json) {
+
+      rawData =
+        json.map(r => {
+
+          const dateInfo =
+            parseDateInfo(r);
+
+          return {
+
+            lot:
+              r['LOT'] ||
+              'Unknown',
+
+            chassis:
+              r['Chassis Number'] ||
+              r['Chassis'] ||
+              r['CHASSIS'] ||
+              'Unknown',
+
+            defectDesc:
+              r['Defect Description'] ||
+              r['Defect Code'] ||
+              r['Defect'] ||
+              'Other',
+
+            defectLocation:
+              r['Location Description'] ||
+              r['Defect Location'] ||
+              'Unspecified',
+
+            inspector:
+              r['Quality Inspector'] ||
+              'Unknown',
+
+            category:
+              r['Defect Category'] ||
+              'Other',
+
+            job:
+              r['Job'] ||
+              r['JOB'] ||
+              r['Job Number'] ||
+              r['Job No'] ||
+              'Unknown',
+
+            date:
+              dateInfo.date,
+
+            month:
+              dateInfo.month,
+
+            day:
+              dateInfo.day
+
+          };
+
+        });
+
+
+      populateDropdowns();
+
+      clearChartFilter();
+
+    }
+
+
+    /* =========================================================
+       POPULATE DROPDOWNS
+       ========================================================= */
+
+    function populateDropdowns() {
+
+      const defects = [
+        'All Defects',
+
+        ...Array.from(
+          new Set(
+            rawData.map(
+              d => d.defectDesc
+            )
+          )
+        )
+        .filter(Boolean)
+        .sort()
+      ];
+
+
+      const categories = [
+        'All Categories',
+
+        ...Array.from(
+          new Set(
+            rawData.map(
+              d => d.category
+            )
+          )
+        )
+        .filter(Boolean)
+        .sort()
+      ];
+
+
+      const jobs = [
+        'All Jobs',
+
+        ...Array.from(
+          new Set(
+            rawData.map(
+              d => d.job
+            )
+          )
+        )
+        .filter(Boolean)
+        .sort()
+      ];
+
+
+      document.getElementById(
+        'defectSelect'
+      ).innerHTML =
+
+        defects.map(
+          d => `
+            <option value="${d}">
+              ${d}
+            </option>
+          `
+        ).join('');
+
+
+      document.getElementById(
+        'categorySelect'
+      ).innerHTML =
+
+        categories.map(
+          c => `
+            <option value="${c}">
+              ${c}
+            </option>
+          `
+        ).join('');
+
+
+      document.getElementById(
+        'jobSelect'
+      ).innerHTML =
+
+        jobs.map(
+          j => `
+            <option value="${j}">
+              ${j}
+            </option>
+          `
+        ).join('');
+
+    }
+
+
+    /* =========================================================
+       CHART FILTER
+       ========================================================= */
+
+    function setChartFilter(
+      key,
+      value
+    ) {
+
+      if (
+        activeChartFilter.key === key &&
+        activeChartFilter.value === value
+      ) {
+
+        clearChartFilter();
+
+        return;
+
+      }
+
+
+      activeChartFilter = {
+        key,
+        value
+      };
+
+
+      document.getElementById(
+        'chartFilterBadge'
+      ).classList.remove(
+        'hidden'
+      );
+
+
+      document.getElementById(
+        'activeFilterText'
+      ).innerText =
+        `${key}: "${value}"`;
+
+
+      applyFilters();
+
+    }
+
+
+    function clearChartFilter() {
+
+      activeChartFilter = {
+        key: null,
+        value: null
+      };
+
+
+      document.getElementById(
+        'chartFilterBadge'
+      ).classList.add(
+        'hidden'
+      );
+
+
+      applyFilters();
+
+    }
+
+
+    /* =========================================================
+       APPLY FILTERS
+       ========================================================= */
+
+    function applyFilters() {
+
+      const fromDateValue =
+        document.getElementById(
+          'fromDate'
+        ).value;
+
+      const toDateValue =
+        document.getElementById(
+          'toDate'
+        ).value;
+
+      const selectedDefect =
+        document.getElementById(
+          'defectSelect'
+        ).value;
+
+      const selectedCategory =
+        document.getElementById(
+          'categorySelect'
+        ).value;
+
+      const selectedJob =
+        document.getElementById(
+          'jobSelect'
+        ).value;
+
+      const chassisSearch =
+        document.getElementById(
+          'chassisSearch'
+        ).value
+          .trim()
+          .toLowerCase();
+
+      const fromDate =
+        fromDateValue
+          ? new Date(
+              fromDateValue + 'T00:00:00'
+            )
+          : null;
+
+      const toDate =
+        toDateValue
+          ? new Date(
+              toDateValue + 'T23:59:59'
+            )
+          : null;
+
+      let filtered =
+        rawData.filter(d => {
+
+          let matchDate = true;
+
+          if (
+            fromDate &&
+            d.date
+          ) {
+            matchDate =
+              d.date >= fromDate;
+          }
+
+          if (
+            matchDate &&
+            toDate &&
+            d.date
+          ) {
+            matchDate =
+              d.date <= toDate;
+          }
+
+          let matchDefect =
+            selectedDefect === 'All Defects' ||
+            d.defectDesc === selectedDefect;
+
+          let matchCategory =
+            selectedCategory === 'All Categories' ||
+            d.category === selectedCategory;
+
+          let matchJob =
+            selectedJob === 'All Jobs' ||
+            d.job === selectedJob;
+
+          let matchChassis =
+            !chassisSearch ||
+            String(d.chassis)
+              .toLowerCase()
+              .includes(chassisSearch);
+
+          let matchChart = true;
+
+          if (
+            activeChartFilter.key &&
+            activeChartFilter.value !== null
+          ) {
+
+            matchChart =
+              (
+                d[
+                  activeChartFilter.key
+                ] ==
+                activeChartFilter.value
+              );
+
+          }
+
+          return (
+            matchDate &&
+            matchDefect &&
+            matchCategory &&
+            matchJob &&
+            matchChassis &&
+            matchChart
+          );
+
+        });
+
+      renderDashboard(
+        filtered
+      );
+
+    }
+
+
+    /* =========================================================
+       RENDER DASHBOARD
+       ========================================================= */
+
+    function renderDashboard(data) {
+
+      const totalDefects =
+        data.length;
+
+
+      const uniqueVehicles =
+        new Set(
+          data.map(
+            d => d.chassis
+          )
+        ).size;
+
+
+      const dpu =
+        uniqueVehicles > 0
+          ? (
+              totalDefects /
+              uniqueVehicles
+            ).toFixed(2)
+          : '0.00';
+
+
+      document.getElementById(
+        'kpiDefects'
+      ).innerText =
+        totalDefects.toLocaleString();
+
+
+      document.getElementById(
+        'kpiVehicles'
+      ).innerText =
+        uniqueVehicles.toLocaleString();
+
+
+      document.getElementById(
+        'kpiDPU'
+      ).innerText =
+        dpu;
+
+
+      /* =====================================================
+         1. DEFECT DESCRIPTION BAR CHART
+         ===================================================== */
+
+      const descCounts = {};
+
+
+      data.forEach(d => {
+
+        descCounts[d.defectDesc] =
+          (
+            descCounts[d.defectDesc] ||
+            0
+          ) + 1;
+
+      });
+
+
+      const sortedDesc =
+        Object.entries(
+          descCounts
+        )
+        .sort(
+          (a, b) =>
+            b[1] - a[1]
+        )
+        .slice(
+          0,
+          10
+        );
+
+
+      const ctxBar =
+        document
+          .getElementById(
+            'defectsBarChart'
+          )
+          .getContext('2d');
+
+
+      if (barChart) {
+        barChart.destroy();
+      }
+
+
+      barChart =
+        new Chart(
+          ctxBar,
+          {
+
+            type: 'bar',
+
+            data: {
+
+              labels:
+                sortedDesc.length > 0
+                  ? sortedDesc.map(
+                      d => d[0]
+                    )
+                  : ['No Data'],
+
+              datasets: [{
+
+                data:
+                  sortedDesc.length > 0
+                    ? sortedDesc.map(
+                        d => d[1]
+                      )
+                    : [0],
+
+                backgroundColor:
+                  createScriptableGradient(
+                    'horizontal',
+                    '#ff007f',
+                    '#7928ca'
+                  ),
+
+                borderRadius: 6,
+
+                clip: false
+
+              }]
+
+            },
+
+            options: {
+
+              indexAxis: 'y',
+
+              responsive: true,
+
+              maintainAspectRatio: false,
+
+              layout: {
+                padding: {
+                  right: 20
+                }
+              },
+
+
+              onClick:
+                (e, elements) => {
+
+                  if (
+                    elements.length > 0 &&
+                    sortedDesc.length > 0
+                  ) {
+
+                    setChartFilter(
+                      'defectDesc',
+                      sortedDesc[
+                        elements[0].index
+                      ][0]
+                    );
+
+                  }
+
+                },
+
+
+              plugins: {
+
+                legend: {
+                  display: false
+                },
+
+                datalabels: {
+
+                  anchor: 'center',
+
+                  align: 'center',
+
+                  color: '#ffffff',
+
+                  font: {
+                    weight: 'bold',
+                    size: 10
+                  },
+
+                  formatter:
+                    (v) =>
+                      v &&
+                      totalDefects > 0
+                        ? `${v.toLocaleString()} (${((v / totalDefects) * 100).toFixed(1)}%)`
+                        : ''
+
+                }
+
+              }
+
+            }
+
+          }
+        );
+
+
+      /* =====================================================
+         2. MONTHLY TREND
+         ===================================================== */
+
+      const monthCounts = {};
+
+
+      all12Months.forEach(
+        m => {
+          monthCounts[m] = 0;
+        }
+      );
+
+
+      data.forEach(d => {
+
+        if (
+          monthCounts[d.month] !==
+          undefined
+        ) {
+
+          monthCounts[d.month]++;
+
+        }
+
+      });
+
+
+      const monthValues =
+        all12Months.map(
+          m =>
+            monthCounts[m]
+        );
+
+
+      const ctxLine =
+        document
+          .getElementById(
+            'dailyTrendChart'
+          )
+          .getContext('2d');
+
+
+      if (lineChart) {
+        lineChart.destroy();
+      }
+
+
+      lineChart =
+        new Chart(
+          ctxLine,
+          {
+
+            type: 'line',
+
+            data: {
+
+              labels:
+                all12Months,
+
+              datasets: [{
+
+                data:
+                  monthValues,
+
+                borderColor:
+                  '#ff007f',
+
+                borderWidth: 3,
+
+                backgroundColor:
+                  function(context) {
+
+                    const {
+                      ctx,
+                      chartArea
+                    } =
+                      context.chart;
+
+
+                    if (!chartArea) {
+
+                      return 'rgba(255, 0, 127, 0.2)';
+
+                    }
+
+
+                    const g =
+                      ctx.createLinearGradient(
+                        0,
+                        chartArea.top,
+                        0,
+                        chartArea.bottom
+                      );
+
+
+                    g.addColorStop(
+                      0,
+                      'rgba(255, 0, 127, 0.6)'
+                    );
+
+
+                    g.addColorStop(
+                      1,
+                      'rgba(18, 9, 33, 0.0)'
+                    );
+
+
+                    return g;
+
+                  },
+
+                fill: true,
+
+                tension: 0.35,
+
+                pointBackgroundColor:
+                  monthValues.map(
+                    v => {
+
+                      const pct =
+                        totalDefects > 0
+                          ? (
+                              v /
+                              totalDefects
+                            ) *
+                            100
+                          : 0;
+
+
+                      return pct >= 50
+                        ? '#ff0055'
+                        : (
+                            pct >= 20
+                              ? '#ffb700'
+                              : '#00f0ff'
+                          );
+
+                    }
+                  ),
+
+                pointBorderColor:
+                  '#ffffff',
+
+                pointRadius: 6,
+
+                pointHoverRadius: 9
+
+              }]
+
+            },
+
+            options: {
+
+              responsive: true,
+
+              maintainAspectRatio: false,
+
+              layout: {
+                padding: {
+                  top: 25
+                }
+              },
+
+
+              onClick:
+                (e, elements) => {
+
+                  if (
+                    elements.length > 0
+                  ) {
+
+                    setChartFilter(
+                      'month',
+                      all12Months[
+                        elements[0].index
+                      ]
+                    );
+
+                  }
+
+                },
+
+
+              scales: {
+
+                y: {
+
+                  beginAtZero: true,
+
+                  ticks: {
+                    precision: 0
+                  }
+
+                }
+
+              },
+
+
+              plugins: {
+
+                legend: {
+                  display: false
+                },
+
+                datalabels: {
+
+                  anchor: 'top',
+
+                  align: 'top',
+
+                  color: '#ffffff',
+
+                  font: {
+                    weight: 'bold',
+                    size: 10
+                  },
+
+                  formatter:
+                    (v) =>
+                      v > 0
+                        ? `${v.toLocaleString()} (${((v / totalDefects) * 100).toFixed(1)}%)`
+                        : ''
+
+                }
+
+              }
+
+            }
+
+          }
+        );
+
+
+      /* =====================================================
+         3. CATEGORY DONUT
+         ===================================================== */
+
+      const categoryCounts = {
+
+        Paint: 0,
+
+        Body: 0,
+
+        Assy: 0,
+
+        Local: 0,
+
+        Ckd: 0
+
+      };
+
+
+      data.forEach(d => {
+
+        if (
+          categoryCounts[d.category] !==
+          undefined
+        ) {
+
+          categoryCounts[
+            d.category
+          ]++;
+
+        }
+
+      });
+
+
+      const topCat =
+        Object.entries(
+          categoryCounts
+        )
+        .sort(
+          (a, b) =>
+            b[1] - a[1]
+        )[0];
+
+
+      document.getElementById(
+        'kpiTopCategory'
+      ).innerText =
+        topCat &&
+        topCat[1] > 0
+          ? topCat[0]
+          : '-';
+
+
+      const ctxDonut =
+        document
+          .getElementById(
+            'categoryDonutChart'
+          )
+          .getContext('2d');
+
+
+      const catBaseColors = [
+
+        ['#ff007f', '#7928ca'],
+
+        ['#00f0ff', '#0052d4'],
+
+        ['#a855f7', '#4c1d95'],
+
+        ['#ff8c00', '#e11d48'],
+
+        ['#facc15', '#854d0e']
+
+      ];
+
+
+      if (donutChart) {
+        donutChart.destroy();
+      }
+
+
+      donutChart =
+        new Chart(
+          ctxDonut,
+          {
+
+            type: 'doughnut',
+
+            data: {
+
+              labels:
+                Object.keys(
+                  categoryCounts
+                ),
+
+              datasets: [{
+
+                data:
+                  Object.values(
+                    categoryCounts
+                  ),
+
+                backgroundColor:
+                  function(context) {
+
+                    const idx =
+                      context.dataIndex;
+
+
+                    const defaultPairs =
+                      catBaseColors[
+                        idx %
+                        catBaseColors.length
+                      ];
+
+
+                    return createScriptableGradient(
+                      'vertical',
+                      defaultPairs[0],
+                      defaultPairs[1]
+                    )(context);
+
+                  },
+
+                borderWidth: 2,
+
+                borderColor:
+                  '#1e0f33'
+
+              }]
+
+            },
+
+            options: {
+
+              responsive: true,
+
+              maintainAspectRatio: false,
+
+
+              onClick:
+                (e, elements) => {
+
+                  if (
+                    elements.length > 0
+                  ) {
+
+                    setChartFilter(
+                      'category',
+                      Object.keys(
+                        categoryCounts
+                      )[
+                        elements[0].index
+                      ]
+                    );
+
+                  }
+
+                },
+
+
+              plugins: {
+
+                legend: {
+                  position: 'right'
+                },
+
+                datalabels: {
+
+                  color: '#ffffff',
+
+                  font: {
+                    weight: 'bold',
+                    size: 11
+                  },
+
+                  formatter:
+                    (v) =>
+                      v &&
+                      totalDefects > 0
+                        ? `${v.toLocaleString()}\n(${((v / totalDefects) * 100).toFixed(1)}%)`
+                        : '',
+
+                  textAlign: 'center'
+
+                }
+
+              }
+
+            }
+
+          }
+        );
+
+
+      /* =====================================================
+         4. PARETO
+         ===================================================== */
+
+      let cumSum = 0;
+
+
+      const paretoLabels =
+        sortedDesc.length > 0
+          ? sortedDesc.map(
+              d => d[0]
+            )
+          : ['No Data'];
+
+
+      const paretoPct =
+        sortedDesc.length > 0
+          ? sortedDesc.map(
+              d =>
+                totalDefects > 0
+                  ? (
+                      d[1] /
+                      totalDefects
+                    ) *
+                    100
+                  : 0
+            )
+          : [0];
+
+
+      const paretoCum =
+        paretoPct.map(
+          pct => {
+
+            cumSum += pct;
+
+            return cumSum.toFixed(1);
+
+          }
+        );
+
+
+      const ctxPareto =
+        document
+          .getElementById(
+            'paretoChart'
+          )
+          .getContext('2d');
+
+
+      if (paretoChart) {
+        paretoChart.destroy();
+      }
+
+
+      paretoChart =
+        new Chart(
+          ctxPareto,
+          {
+
+            type: 'bar',
+
+            data: {
+
+              labels:
+                paretoLabels,
+
+              datasets: [
+
+                {
+
+                  type: 'line',
+
+                  label:
+                    'Cumulative %',
+
+                  data:
+                    paretoCum,
+
+                  borderColor:
+                    '#00f0ff',
+
+                  borderWidth: 2.5,
+
+                  pointBackgroundColor:
+                    '#00f0ff',
+
+                  yAxisID:
+                    'y1',
+
+                  datalabels: {
+                    display: false
+                  }
+
+                },
+
+                {
+
+                  type: 'line',
+
+                  label:
+                    '80% Cutoff',
+
+                  data:
+                    Array(
+                      paretoLabels.length
+                    ).fill(80),
+
+                  borderColor:
+                    '#facc15',
+
+                  borderWidth: 1.5,
+
+                  borderDash:
+                    [5, 5],
+
+                  pointRadius:
+                    0,
+
+                  yAxisID:
+                    'y1',
+
+                  datalabels: {
+                    display: false
+                  }
+
+                },
+
+                {
+
+                  label:
+                    '% Defects',
+
+                  data:
+                    paretoPct.map(
+                      p =>
+                        p.toFixed(1)
+                    ),
+
+                  backgroundColor:
+                    createScriptableGradient(
+                      'vertical',
+                      '#a855f7',
+                      '#6b21a8'
+                    ),
+
+                  borderRadius:
+                    4,
+
+                  yAxisID:
+                    'y',
+
+                  datalabels: {
+
+                    anchor:
+                      'center',
+
+                    align:
+                      'center',
+
+                    color:
+                      '#ffffff',
+
+                    font: {
+                      weight: 'bold',
+                      size: 10
+                    },
+
+                    formatter:
+                      (v) =>
+                        v > 0
+                          ? `${v}%`
+                          : ''
+
+                  }
+
+                }
+
+              ]
+
+            },
+
+            options: {
+
+              responsive: true,
+
+              maintainAspectRatio: false,
+
+
+              onClick:
+                (e, elements) => {
+
+                  if (
+                    elements.length > 0 &&
+                    sortedDesc.length > 0
+                  ) {
+
+                    setChartFilter(
+                      'defectDesc',
+                      paretoLabels[
+                        elements[0].index
+                      ]
+                    );
+
+                  }
+
+                },
+
+
+              scales: {
+
+                y: {
+
+                  type:
+                    'linear',
+
+                  position:
+                    'left',
+
+                  min: 0
+
+                },
+
+                y1: {
+
+                  type:
+                    'linear',
+
+                  position:
+                    'right',
+
+                  min: 0,
+
+                  max: 100,
+
+                  grid: {
+                    drawOnChartArea: false
+                  }
+
+                }
+
+              }
+
+            }
+
+          }
+        );
+
+
+      /* =====================================================
+         5. INSPECTOR CHART
+         ===================================================== */
+
+      const inspectorData = {};
+
+
+      data.forEach(d => {
+
+        if (
+          !inspectorData[
+            d.inspector
+          ]
+        ) {
+
+          inspectorData[
+            d.inspector
+          ] = {
+
+            defects: 0,
+
+            vehicles:
+              new Set()
+
+          };
+
+        }
+
+
+        inspectorData[
+          d.inspector
+        ].defects++;
+
+
+        if (d.chassis) {
+
+          inspectorData[
+            d.inspector
+          ].vehicles.add(
+            d.chassis
+          );
+
+        }
+
+      });
+
+
+      const sortedInspectors =
+        Object.entries(
+          inspectorData
+        )
+        .sort(
+          (a, b) =>
+            b[1].defects -
+            a[1].defects
+        )
+        .slice(
+          0,
+          6
+        );
+
+
+      const inspectorLabels =
+        sortedInspectors.length > 0
+          ? sortedInspectors.map(
+              d => d[0]
+            )
+          : ['No Data'];
+
+
+      const inspectorDefectCounts =
+        sortedInspectors.length > 0
+          ? sortedInspectors.map(
+              d => d[1].defects
+            )
+          : [0];
+
+
+      const inspectorVehicleCounts =
+        sortedInspectors.length > 0
+          ? sortedInspectors.map(
+              d => d[1].vehicles.size
+            )
+          : [0];
+
+
+      const ctxInspector =
+        document
+          .getElementById(
+            'inspectorChart'
+          )
+          .getContext('2d');
+
+
+      if (inspectorChart) {
+        inspectorChart.destroy();
+      }
+
+
+      inspectorChart =
+        new Chart(
+          ctxInspector,
+          {
+
+            type: 'bar',
+
+            data: {
+
+              labels:
+                inspectorLabels,
+
+              datasets: [
+
+                {
+
+                  label:
+                    'Defects',
+
+                  data:
+                    inspectorDefectCounts,
+
+                  backgroundColor:
+                    createScriptableGradient(
+                      'vertical',
+                      '#8b5cf6',
+                      '#6d28d9'
+                    ),
+
+                  borderRadius:
+                    6
+
+                },
+
+                {
+
+                  label:
+                    'Unique Vehicles',
+
+                  data:
+                    inspectorVehicleCounts,
+
+                  backgroundColor:
+                    createScriptableGradient(
+                      'vertical',
+                      '#06b6d4',
+                      '#0891b2'
+                    ),
+
+                  borderRadius:
+                    6
+
+                }
+
+              ]
+
+            },
+
+            options: {
+
+              responsive: true,
+
+              maintainAspectRatio: false,
+
+              layout: {
+
+                padding: {
+                  top: 15
+                }
+
+              },
+
+
+              onClick:
+                (e, elements) => {
+
+                  if (
+                    elements.length > 0 &&
+                    sortedInspectors.length > 0
+                  ) {
+
+                    setChartFilter(
+                      'inspector',
+                      sortedInspectors[
+                        elements[0].index
+                      ][0]
+                    );
+
+                  }
+
+                },
+
+
+              plugins: {
+
+                legend: {
+
+                  display: true,
+
+                  position:
+                    'top',
+
+                  labels: {
+
+                    color:
+                      '#e2e8f0',
+
+                    font: {
+                      size: 11,
+                      weight: 'bold'
+                    }
+
+                  }
+
+                },
+
+                datalabels: {
+
+                  anchor:
+                    'center',
+
+                  align:
+                    'center',
+
+                  color:
+                    '#ffffff',
+
+                  font: {
+
+                    weight:
+                      'bold',
+
+                    size:
+                      10
+
+                  },
+
+                  textAlign:
+                    'center',
+
+
+                  formatter:
+                    (v, ctx) => {
+
+                      if (
+                        !v ||
+                        v === 0
+                      ) {
+                        return '';
+                      }
+
+
+                      if (
+                        ctx.datasetIndex === 0
+                      ) {
+
+                        const pct =
+                          totalDefects > 0
+                            ? (
+                                (
+                                  v /
+                                  totalDefects
+                                ) *
+                                100
+                              ).toFixed(1)
+                            : '0.0';
+
+
+                        return `${v.toLocaleString()}\n(${pct}%)`;
+
+                      } else {
+
+                        return `${v.toLocaleString()}`;
+
+                      }
+
+                    }
+
+                }
+
+              }
+
+            }
+
+          }
+        );
+
+
+      /* =====================================================
+         6. TOP 10 DEFECT LOCATIONS
+         ===================================================== */
+
+      const locationCounts = {};
+
+
+      data.forEach(d => {
+
+        locationCounts[
+          d.defectLocation
+        ] =
+          (
+            locationCounts[
+              d.defectLocation
+            ] ||
+            0
+          ) + 1;
+
+      });
+
+
+      const sortedLocations =
+        Object.entries(
+          locationCounts
+        )
+        .sort(
+          (a, b) =>
+            b[1] - a[1]
+        )
+        .slice(
+          0,
+          10
+        );
+
+
+      const ctxLoc =
+        document
+          .getElementById(
+            'locationChart'
+          )
+          .getContext('2d');
+
+
+      if (locationChart) {
+        locationChart.destroy();
+      }
+
+
+      locationChart =
+        new Chart(
+          ctxLoc,
+          {
+
+            type: 'bar',
+
+            data: {
+
+              labels:
+                sortedLocations.length > 0
+                  ? sortedLocations.map(
+                      d => d[0]
+                    )
+                  : ['No Data'],
+
+              datasets: [{
+
+                label:
+                  'Defect Count',
+
+                data:
+                  sortedLocations.length > 0
+                    ? sortedLocations.map(
+                        d => d[1]
+                      )
+                    : [0],
+
+                backgroundColor:
+                  createScriptableGradient(
+                    'horizontal',
+                    '#1e1b4b',
+                    '#4c1d95'
+                  ),
+
+                borderRadius:
+                  6,
+
+                clip:
+                  false
+
+              }]
+
+            },
+
+            options: {
+
+              indexAxis:
+                'y',
+
+              responsive:
+                true,
+
+              maintainAspectRatio:
+                false,
+
+              layout: {
+
+                padding: {
+                  right: 20
+                }
+
+              },
+
+
+              onClick:
+                (e, elements) => {
+
+                  if (
+                    elements.length > 0 &&
+                    sortedLocations.length > 0
+                  ) {
+
+                    setChartFilter(
+                      'defectLocation',
+                      sortedLocations[
+                        elements[0].index
+                      ][0]
+                    );
+
+                  }
+
+                },
+
+
+              plugins: {
+
+                legend: {
+                  display: false
+                },
+
+                datalabels: {
+
+                  anchor:
+                    'center',
+
+                  align:
+                    'center',
+
+                  color:
+                    '#ffffff',
+
+                  font: {
+
+                    weight:
+                      'bold',
+
+                    size:
+                      10
+
+                  },
+
+
+                  formatter:
+                    (v) =>
+                      v > 0
+                        ? `${v.toLocaleString()} (${((v / totalDefects) * 100).toFixed(1)}%)`
+                        : ''
+
+                }
+
+              }
+
+            }
+
+          }
+        );
+
+
+      /* =====================================================
+         INSIGHTS
+         ===================================================== */
+
+      if (totalDefects > 0) {
+
+        const topDefect =
+          sortedDesc[0]
+            ? `${sortedDesc[0][0]} (${sortedDesc[0][1]} instances)`
+            : 'N/A';
+
+
+        document.getElementById(
+          'insightDefects'
+        ).innerText =
+
+          `Primary defect driver: ${topDefect}. Top 3 defect types account for ${(((sortedDesc.slice(0, 3).reduce((a, b) => a + b[1], 0)) / totalDefects) * 100).toFixed(1)}% of filtered defects.`;
+
+
+        const catPct =
+          topCat &&
+          totalDefects > 0
+            ? (
+                (
+                  topCat[1] /
+                  totalDefects
+                ) *
+                100
+              ).toFixed(1)
+            : 0;
+
+
+        document.getElementById(
+          'insightCategory'
+        ).innerText =
+
+          `Category ${topCat ? topCat[0] : 'N/A'} is leading defect occurrences with ${catPct}% of overall volume.`;
+
+
+        const peakMonth =
+          all12Months.reduce(
+            (a, b) =>
+              monthCounts[a] >
+              monthCounts[b]
+                ? a
+                : b
+          );
+
+
+        document.getElementById(
+          'insightTrend'
+        ).innerText =
+
+          `Peak volume concentration was in ${peakMonth} with ${monthCounts[peakMonth] || 0} recorded defect entries.`;
+
+      } else {
+
+        document.getElementById(
+          'insightDefects'
+        ).innerText =
+          'No defect records found for the selected filter.';
+
+
+        document.getElementById(
+          'insightCategory'
+        ).innerText =
+          'No defect records found for the selected filter.';
+
+
+        document.getElementById(
+          'insightTrend'
+        ).innerText =
+          'No defect records found for the selected filter.';
+
+      }
+
+
+      /* =====================================================
+         MATRIX TABLE
+         ===================================================== */
+
+      const matrix = {};
+
+
+      data.forEach(d => {
+
+        if (
+          !matrix[d.lot]
+        ) {
+
+          matrix[d.lot] = {
+
+            Assy: 0,
+
+            Body: 0,
+
+            Ckd: 0,
+
+            Local: 0,
+
+            Paint: 0,
+
+            Total: 0
+
+          };
+
+        }
+
+
+        if (
+          matrix[d.lot][
+            d.category
+          ] !== undefined
+        ) {
+
+          matrix[d.lot][
+            d.category
+          ]++;
+
+        }
+
+
+        matrix[d.lot].Total++;
+
+      });
+
+
+      const sortedMatrix =
+        Object.entries(
+          matrix
+        )
+        .sort(
+          (a, b) =>
+            a[0].localeCompare(
+              b[0]
+            )
+        );
+
+
+      const tbody =
+        document.getElementById(
+          'matrixBody'
+        );
+
+
+      if (
+        sortedMatrix.length > 0
+      ) {
+
+        tbody.innerHTML =
+          sortedMatrix
+            .map(
+              ([lot, counts]) => `
+
+                <tr class="matrix-table-row">
+
+                  <td class="p-3 font-semibold text-purple-200">
+                    ${lot}
+                  </td>
+
+                  <td class="p-3 text-center">
+                    ${counts.Assy || '-'}
+                  </td>
+
+                  <td class="p-3 text-center">
+                    ${counts.Body || '-'}
+                  </td>
+
+                  <td class="p-3 text-center">
+                    ${counts.Ckd || '-'}
+                  </td>
+
+                  <td class="p-3 text-center">
+                    ${counts.Local || '-'}
+                  </td>
+
+                  <td class="p-3 text-center">
+                    ${counts.Paint || '-'}
+                  </td>
+
+                  <td class="p-3 text-center font-bold text-pink-400">
+                    ${counts.Total}
+                  </td>
+
+                </tr>
+
+              `
+            )
+            .join('');
+
+      } else {
+
+        tbody.innerHTML = `
+
+          <tr>
+
+            <td
+              colspan="7"
+              class="p-4 text-center text-purple-400"
+            >
+              No defect records found for selected filter criteria.
+            </td>
+
+          </tr>
+
+        `;
+
+      }
+
+    }
+
+  </script>
+
+</body>
+</html>
